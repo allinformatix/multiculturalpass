@@ -1,0 +1,10 @@
+---
+profile: production
+exclude_paths:
+  - .runtime/
+  - .venv/
+  - .git/
+  - terraform/
+  - tests/
+skip_list:
+  - yaml[line-length]

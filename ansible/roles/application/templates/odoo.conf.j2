@@ -1,0 +1,21 @@
+[options]
+admin_passwd = {{ lookup('env', 'ODOO_MASTER_PASSWORD') }}
+db_host = db
+db_port = 5432
+db_user = odoo
+db_password = {{ lookup('env', 'DB_PASSWORD') }}
+db_name = {{ database }}
+dbfilter = ^{{ database }}$
+list_db = False
+proxy_mode = True
+workers = {{ workers }}
+max_cron_threads = 1
+gevent_port = 8072
+limit_memory_soft = 335544320
+limit_memory_hard = 469762048
+limit_time_cpu = 60
+limit_time_real = 120
+db_maxconn = 16
+data_dir = /var/lib/odoo
+addons_path = /mnt/extra-addons
+log_level = info

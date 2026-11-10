@@ -1,0 +1,143 @@
+---
+name: Reusable environment operation
+on:
+  workflow_call:
+    inputs:
+      environment:
+        type: string
+        required: true
+      operation:
+        type: string
+        required: true
+      confirmation:
+        type: string
+        default: ''
+      snapshot:
+        type: string
+        default: ''
+      allow_production_destroy:
+        type: boolean
+        default: false
+permissions:
+  contents: read
+  actions: read
+  deployments: read
+concurrency:
+  group: odoo-${{ inputs.environment }}
+  cancel-in-progress: false
+jobs:
+  plan:
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      github.ref == format('refs/heads/{0}', github.event.repository.default_branch) &&
+      contains(fromJSON('["plan","provision","deploy"]'), inputs.operation)
+    runs-on: ubuntu-24.04
+    environment: ${{ inputs.environment }}
+    env:
+
+      TF_TOKEN_app_terraform_io: ${{ secrets.TF_API_TOKEN }}
+      HCLOUD_TOKEN: ${{ secrets.HCLOUD_TOKEN }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CF_DNS_API_TOKEN: ${{ secrets.CF_DNS_API_TOKEN }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      BACKUP_AWS_ACCESS_KEY_ID: ${{ secrets.BACKUP_AWS_ACCESS_KEY_ID }}
+      BACKUP_AWS_SECRET_ACCESS_KEY: ${{ secrets.BACKUP_AWS_SECRET_ACCESS_KEY }}
+      RESTIC_PASSWORD: ${{ secrets.RESTIC_PASSWORD }}
+      DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+      PG_ADMIN_PASSWORD: ${{ secrets.PG_ADMIN_PASSWORD }}
+      ODOO_MASTER_PASSWORD: ${{ secrets.ODOO_MASTER_PASSWORD }}
+      ODOO_ADMIN_PASSWORD: ${{ secrets.ODOO_ADMIN_PASSWORD }}
+      SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+      SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+      BOOTSTRAP_SSH_USER: ${{ vars.BOOTSTRAP_SSH_USER }}
+      PROJECT_CONFIG: ${{ vars.PROJECT_CONFIG }}
+      ENVIRONMENT_CONFIG: ${{ vars.ENVIRONMENT_CONFIG }}
+      GH_TOKEN: ${{ github.token }}
+      DEPLOY_ENV: ${{ inputs.environment }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+        with:
+          environment: ${{ inputs.environment }}
+          ssh-required: 'false'
+      - name: Generate reviewable plan
+        run: ./ops.sh plan --env "$DEPLOY_ENV"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: plan-${{ inputs.environment }}-${{ github.run_id }}
+          path: |
+            .runtime/${{ inputs.environment }}/apply.tfplan
+            .runtime/${{ inputs.environment }}/plan.txt
+            .runtime/${{ inputs.environment }}/plan.sha256
+          include-hidden-files: true
+          retention-days: 1
+  operate:
+    needs: plan
+    if: >-
+      always() && github.event_name == 'workflow_dispatch' &&
+      github.ref == format('refs/heads/{0}', github.event.repository.default_branch) &&
+      inputs.operation != 'plan' &&
+      (needs.plan.result == 'success' || needs.plan.result == 'skipped')
+    runs-on: ubuntu-24.04
+    environment: ${{ inputs.environment }}
+    env:
+
+      TF_TOKEN_app_terraform_io: ${{ secrets.TF_API_TOKEN }}
+      HCLOUD_TOKEN: ${{ secrets.HCLOUD_TOKEN }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CF_DNS_API_TOKEN: ${{ secrets.CF_DNS_API_TOKEN }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      BACKUP_AWS_ACCESS_KEY_ID: ${{ secrets.BACKUP_AWS_ACCESS_KEY_ID }}
+      BACKUP_AWS_SECRET_ACCESS_KEY: ${{ secrets.BACKUP_AWS_SECRET_ACCESS_KEY }}
+      RESTIC_PASSWORD: ${{ secrets.RESTIC_PASSWORD }}
+      DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+      PG_ADMIN_PASSWORD: ${{ secrets.PG_ADMIN_PASSWORD }}
+      ODOO_MASTER_PASSWORD: ${{ secrets.ODOO_MASTER_PASSWORD }}
+      ODOO_ADMIN_PASSWORD: ${{ secrets.ODOO_ADMIN_PASSWORD }}
+      SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+      SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+      BOOTSTRAP_SSH_USER: ${{ vars.BOOTSTRAP_SSH_USER }}
+      PROJECT_CONFIG: ${{ vars.PROJECT_CONFIG }}
+      ENVIRONMENT_CONFIG: ${{ vars.ENVIRONMENT_CONFIG }}
+      GH_TOKEN: ${{ github.token }}
+      DEPLOY_ENV: ${{ inputs.environment }}
+      OPERATION: ${{ inputs.operation }}
+      CONFIRMATION: ${{ inputs.confirmation }}
+      SNAPSHOT: ${{ inputs.snapshot }}
+      PRODUCTION_DESTROY: ${{ inputs.allow_production_destroy }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+        with:
+          environment: ${{ inputs.environment }}
+          ssh-required: ${{ inputs.operation != 'provision' }}
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        if: needs.plan.result == 'success'
+        with:
+          name: plan-${{ inputs.environment }}-${{ github.run_id }}
+          path: .runtime/${{ inputs.environment }}
+      - name: Execute guarded operation
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          args=(--env "$DEPLOY_ENV")
+          case "$OPERATION" in
+            provision|deploy)
+              ./ops.sh apply "${args[@]}" --confirm "$CONFIRMATION"
+              if [[ "$OPERATION" == deploy ]]; then
+                ./ops.sh configure "${args[@]}"
+                ./ops.sh status "${args[@]}"
+              fi ;;
+            backup) ./ops.sh backup "${args[@]}" ;;
+            restore) ./ops.sh restore "${args[@]}" --snapshot "$SNAPSHOT" --confirm "$CONFIRMATION" ;;
+            destroy)
+              if [[ "$PRODUCTION_DESTROY" == true ]]; then args+=(--allow-production-destroy); fi
+              ./ops.sh destroy "${args[@]}" --confirm "$CONFIRMATION" ;;
+            *) echo 'Unsupported operation' >&2; exit 2 ;;
+          esac

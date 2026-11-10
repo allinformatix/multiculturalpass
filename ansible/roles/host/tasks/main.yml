@@ -1,0 +1,104 @@
+---
+- name: Require supported Ubuntu
+  ansible.builtin.assert:
+    that:
+      - ansible_architecture == 'x86_64'
+      - ansible_distribution == 'Ubuntu'
+      - ansible_distribution_version == '24.04'
+- name: Install base packages and security updates
+  ansible.builtin.apt:
+    name: [ufw, curl, ca-certificates, python3, python3-psycopg2, python3-debian, chrony, unattended-upgrades, sudo]
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+- name: Enable automatic security upgrades
+  ansible.builtin.copy:
+    dest: /etc/apt/apt.conf.d/20auto-upgrades
+    content: |
+      APT::Periodic::Update-Package-Lists "1";
+      APT::Periodic::Unattended-Upgrade "1";
+    mode: '0644'
+- name: Create infrastructure administrator
+  ansible.builtin.user:
+    name: '{{ ssh_user }}'
+    shell: /bin/bash
+    create_home: true
+    groups: sudo
+    append: true
+- name: Create SSH directory
+  ansible.builtin.file:
+    path: '/home/{{ ssh_user }}/.ssh'
+    state: directory
+    owner: '{{ ssh_user }}'
+    group: '{{ ssh_user }}'
+    mode: '0700'
+- name: Install deployment key
+  ansible.builtin.copy:
+    dest: '/home/{{ ssh_user }}/.ssh/authorized_keys'
+    content: '{{ ssh_public_key }}
+'
+    owner: '{{ ssh_user }}'
+    group: '{{ ssh_user }}'
+    mode: '0600'
+- name: Grant administrator privilege for Ansible
+  ansible.builtin.copy:
+    dest: '/etc/sudoers.d/{{ ssh_user }}'
+    content: '{{ ssh_user }} ALL=(root) NOPASSWD: ALL
+'
+    mode: '0440'
+    validate: /usr/sbin/visudo -cf %s
+- name: Verify deployment SSH before disabling root access
+  ansible.builtin.command:
+    argv:
+      - ssh
+      - -o
+      - BatchMode=yes
+      - -o
+      - StrictHostKeyChecking=yes
+      - '{{ ssh_user }}@{{ ansible_host }}'
+      - sudo -n true
+  delegate_to: localhost
+  become: false
+  changed_when: false
+- name: Harden SSH
+  ansible.builtin.copy:
+    dest: /etc/ssh/sshd_config.d/00-odoo-hardening.conf
+    mode: '0644'
+    content: |
+      PasswordAuthentication no
+      KbdInteractiveAuthentication no
+      PermitRootLogin no
+      X11Forwarding no
+      AllowTcpForwarding no
+      MaxAuthTries 3
+      AllowUsers {{ ssh_user }}
+  notify: Reload SSH
+- name: Allow SSH from operator and runner ranges
+  ansible.builtin.command: 'ufw allow from {{ item }} to any port 22 proto tcp'
+  loop: '{{ ssh_cidrs }}'
+  register: host_ssh_firewall
+  changed_when: "'Rule added' in host_ssh_firewall.stdout or 'Rules updated' in host_ssh_firewall.stdout"
+- name: Allow TLS from configured ranges
+  ansible.builtin.command: 'ufw allow from {{ item }} to any port 443 proto tcp'
+  loop: '{{ web_cidrs }}'
+  register: host_web_firewall
+  changed_when: "'Rule added' in host_web_firewall.stdout or 'Rules updated' in host_web_firewall.stdout"
+- name: Inspect host firewall status
+  ansible.builtin.command: ufw status verbose
+  register: host_ufw_status
+  changed_when: false
+- name: Set default deny incoming traffic
+  ansible.builtin.command: ufw default deny incoming
+  register: host_ufw_default
+  changed_when: "'changed' in host_ufw_default.stdout"
+  when: "'deny (incoming)' not in host_ufw_status.stdout"
+- name: Enable host firewall
+  ansible.builtin.command: ufw --force enable
+  register: host_ufw_enable
+  changed_when: "'enabled' in host_ufw_enable.stdout"
+  when: "'Status: active' not in host_ufw_status.stdout"
+- name: Enable time synchronization
+  ansible.builtin.service:
+    name: chrony
+    state: started
+    enabled: true

@@ -1,0 +1,21 @@
+---
+name: backup
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Isolated deployment environment
+        type: choice
+        options: [dev, stg, prd]
+        required: true
+permissions:
+  contents: read
+  actions: read
+  deployments: read
+jobs:
+  operation:
+    uses: ./.github/workflows/_operate.yml
+    with:
+      environment: ${{ inputs.environment }}
+      operation: backup
+    secrets: inherit

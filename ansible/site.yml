@@ -1,0 +1,11 @@
+---
+- name: Configure Odoo all in one
+  hosts: all
+  become: true
+  roles:
+    - role: host
+      tags: [host]
+    - role: docker
+      tags: [docker]
+    - role: application
+      tags: [app]

@@ -1,0 +1,57 @@
+name: {{ name }}
+services:
+  db:
+    image: {{ postgres_image }}
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD_FILE: /run/secrets/pg_admin_password
+      POSTGRES_DB: postgres
+    secrets: [pg_admin_password]
+    volumes:
+      - postgres:/var/lib/postgresql/data
+    networks: [database]
+    command: [postgres, -c, shared_buffers=128MB, -c, max_connections=50, -c, work_mem=4MB]
+    mem_limit: 384m
+    shm_size: 128m
+    healthcheck:
+      test: [CMD-SHELL, pg_isready -U postgres -d postgres]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    logging: {driver: local, options: {max-size: 10m, max-file: '3'}}
+  odoo:
+    image: {{ odoo_image }}
+    user: "101:101"
+    restart: unless-stopped
+    # Bypass image entrypoint argument injection; configuration is authoritative.
+    entrypoint: [/usr/bin/odoo]
+    command: [-c, /etc/odoo/odoo.conf]
+    depends_on:
+      db: {condition: service_healthy}
+    ports:
+      - 127.0.0.1:8069:8069
+      - 127.0.0.1:8072:8072
+    volumes:
+      - ./config/odoo.conf:/etc/odoo/odoo.conf:ro
+      - ./data:/var/lib/odoo
+      - ./addons:/mnt/extra-addons:ro
+    networks: [database, egress]
+    mem_limit: 1100m
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+    healthcheck:
+      test: [CMD, python3, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8069/web/health', timeout=4)"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 90s
+    logging: {driver: local, options: {max-size: 10m, max-file: '3'}}
+volumes:
+  postgres:
+networks:
+  database: {internal: true}
+  egress:
+secrets:
+  pg_admin_password:
+    file: ./secrets/pg_admin_password

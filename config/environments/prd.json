@@ -1,0 +1,7 @@
+{
+  "hostname": "odoo.example.com",
+  "cloudflare_zone_id": "REPLACE",
+  "ssh_cidrs": [
+    "192.0.2.1/32"
+  ]
+}

@@ -1,0 +1,10 @@
+[Unit]
+Description=Consistent encrypted Odoo backup
+After=docker.service network-online.target
+Wants=network-online.target
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/odoo-backup backup
+Nice=10
+IOSchedulingClass=idle
+TimeoutStartSec=2h

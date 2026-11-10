@@ -1,0 +1,31 @@
+---
+name: restore
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Isolated deployment environment
+        type: choice
+        options: [dev, stg, prd]
+        required: true
+      confirmation:
+        description: 'Exact project-environment:apply, :restore or :destroy confirmation'
+        type: string
+        required: true
+      snapshot:
+        description: Full 64 character Restic snapshot ID
+        type: string
+        required: true
+permissions:
+  contents: read
+  actions: read
+  deployments: read
+jobs:
+  operation:
+    uses: ./.github/workflows/_operate.yml
+    with:
+      environment: ${{ inputs.environment }}
+      operation: restore
+      confirmation: ${{ inputs.confirmation }}
+      snapshot: ${{ inputs.snapshot }}
+    secrets: inherit

@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+umask 077
+cd /opt/odoo
+exec 9>/run/lock/odoo-maintenance.lock
+flock -n 9 || { echo 'Another maintenance operation is active' >&2; exit 75; }
+compose() { docker compose "$@"; }
+[[ "${1:-}" == deploy ]] || exit 2
+fingerprint=$(find config secrets addons -type f -print0 | sort -z | xargs -0 sha256sum | sha256sum)
+fingerprint=$(printf '%s' "$fingerprint"; sha256sum compose.yml)
+if [[ -f state/deployment.sha256 ]] && [[ $(cat state/deployment.sha256) == "$fingerprint" ]] && compose ps --status running --services | grep -qx odoo; then
+  exit 0
+fi
+compose config --quiet
+compose pull
+compose up -d --wait db
+# Credentials pass through stdin/environment, never command-line values.
+export DB_PASSWORD={{ lookup('env', 'DB_PASSWORD') | quote }}
+export PG_ADMIN_PASSWORD={{ lookup('env', 'PG_ADMIN_PASSWORD') | quote }}
+export DATABASE={{ database | quote }}
+export ODOO_ADMIN_PASSWORD={{ lookup('env', 'ODOO_ADMIN_PASSWORD') | quote }}
+# Use the PostgreSQL container's Python-free runtime by provisioning via host Python
+# over its private network address; no DB host port is published.
+db_ip=$(docker inspect -f '{% raw %}{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}{% endraw %}' "$(compose ps -q db)")
+sed "s/host='127.0.0.1'/host='$db_ip'/" config/provision-db.py | python3
+initialized=$(compose exec -T db psql -U postgres -d "$DATABASE" -Atc "SELECT count(*) FROM information_schema.tables WHERE table_name='ir_module_module'")
+if [[ "$initialized" == 0 ]]; then
+  compose run --rm --no-deps odoo -c /etc/odoo/odoo.conf -d "$DATABASE" -i base --stop-after-init --without-demo=all
+  compose run --rm -T --no-deps -e ODOO_ADMIN_PASSWORD --entrypoint /usr/bin/odoo odoo shell -c /etc/odoo/odoo.conf -d "$DATABASE" --no-http < config/initialize-admin.py
+fi
+compose up -d --wait --wait-timeout 180
+# Configuration files may change without a compose service hash change.
+compose restart odoo
+printf '%s\n' "$fingerprint" > state/deployment.sha256
+echo Changed

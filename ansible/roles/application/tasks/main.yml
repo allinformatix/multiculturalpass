@@ -1,0 +1,147 @@
+---
+- name: Install proxy certificate and backup tools
+  ansible.builtin.apt:
+    name: [nginx, certbot, python3-certbot-dns-cloudflare, restic, acl]
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+- name: Validate required deployment secrets
+  ansible.builtin.assert:
+    that:
+      - lookup('env', item) | length >= 16
+    fail_msg: 'Missing or too short secret: {{ item }}'
+  loop: [DB_PASSWORD, PG_ADMIN_PASSWORD, ODOO_MASTER_PASSWORD, ODOO_ADMIN_PASSWORD, RESTIC_PASSWORD, BACKUP_AWS_ACCESS_KEY_ID, BACKUP_AWS_SECRET_ACCESS_KEY, CF_DNS_API_TOKEN]
+  no_log: true
+- name: Require safe high entropy passwords for INI configuration
+  ansible.builtin.assert:
+    that:
+      - lookup('env', item) is match('^[a-fA-F0-9]{32,128}$')
+  loop: [DB_PASSWORD, PG_ADMIN_PASSWORD, ODOO_MASTER_PASSWORD, ODOO_ADMIN_PASSWORD]
+  no_log: true
+- name: Create protected deployment directories
+  ansible.builtin.file:
+    path: '{{ application_root }}/{{ item }}'
+    state: directory
+    mode: '0700'
+  loop: ['', secrets, config, state, staging]
+- name: Create Odoo persistent directories
+  ansible.builtin.file:
+    path: '{{ application_root }}/{{ item }}'
+    state: directory
+    owner: '101'
+    group: '101'
+    mode: '0750'
+  loop: [data, addons]
+- name: Permit Odoo to traverse deployment root
+  ansible.builtin.command: 'setfacl -m u:101:--x {{ application_root }}'
+  changed_when: false
+- name: Render secrets and runtime configuration
+  ansible.builtin.template:
+    src: '{{ item.src }}'
+    dest: '{{ application_root }}/{{ item.dest }}'
+    mode: '{{ item.mode }}'
+    owner: '{{ item.owner | default("root") }}'
+    group: '{{ item.owner | default("root") }}'
+  loop:
+    - {src: odoo.conf.j2, dest: config/odoo.conf, mode: '0600', owner: '101'}
+    - {src: admin-password.j2, dest: secrets/pg_admin_password, mode: '0600'}
+    - {src: backup.env.j2, dest: secrets/backup.env, mode: '0600'}
+    - {src: cloudflare.ini.j2, dest: secrets/cloudflare.ini, mode: '0600'}
+  no_log: true
+- name: Write application version metadata
+  ansible.builtin.copy:
+    dest: '{{ application_root }}/config/version.json'
+    content: '{{ {"odoo_image": odoo_image, "postgres_image": postgres_image, "database": database, "environment": environment, "name": name} | to_nice_json }}'
+    mode: '0600'
+- name: Render compose definition
+  ansible.builtin.template:
+    src: compose.yml.j2
+    dest: '{{ application_root }}/compose.yml'
+    mode: '0600'
+- name: Copy database provisioning script
+  ansible.builtin.copy:
+    src: provision-db.py
+    dest: '{{ application_root }}/config/provision-db.py'
+    mode: '0600'
+- name: Copy Odoo administrator initialization script
+  ansible.builtin.copy:
+    src: initialize-admin.py
+    dest: '{{ application_root }}/config/initialize-admin.py'
+    mode: '0600'
+- name: Issue or renew origin certificate via DNS challenge
+  ansible.builtin.command:
+    argv:
+      - certbot
+      - certonly
+      - --non-interactive
+      - --agree-tos
+      - --dns-cloudflare
+      - --dns-cloudflare-credentials
+      - '{{ application_root }}/secrets/cloudflare.ini'
+      - --dns-cloudflare-propagation-seconds
+      - '60'
+      - --keep-until-expiring
+      - --email
+      - '{{ acme_email }}'
+      - -d
+      - '{{ hostname }}'
+  register: application_certbot_result
+  changed_when: "'Successfully received' in application_certbot_result.stdout"
+- name: Install renewal hook
+  ansible.builtin.copy:
+    dest: /etc/letsencrypt/renewal-hooks/deploy/nginx
+    mode: '0750'
+    content: |
+      #!/bin/sh
+      nginx -t && systemctl reload nginx
+- name: Remove default NGINX site
+  ansible.builtin.file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+- name: Render NGINX site
+  ansible.builtin.template:
+    src: nginx.conf.j2
+    dest: /etc/nginx/conf.d/odoo.conf
+    mode: '0644'
+  notify: Reload NGINX
+- name: Validate proxy configuration
+  ansible.builtin.command: nginx -t
+  changed_when: false
+- name: Install management script
+  ansible.builtin.template:
+    src: manage.sh.j2
+    dest: /usr/local/sbin/odoo-manage
+    mode: '0700'
+- name: Install backup and restore script
+  ansible.builtin.template:
+    src: backup.sh.j2
+    dest: /usr/local/sbin/odoo-backup
+    mode: '0700'
+- name: Install backup systemd units
+  ansible.builtin.template:
+    src: '{{ item }}.j2'
+    dest: '/etc/systemd/system/{{ item }}'
+    mode: '0644'
+  loop: [odoo-backup.service, odoo-backup.timer]
+  notify: Reload systemd
+- name: Start application with lock and initialize database if fresh
+  ansible.builtin.command: /usr/local/sbin/odoo-manage deploy
+  register: application_deploy
+  changed_when: "'Changed' in application_deploy.stdout"
+  no_log: true
+- name: Apply handlers before healthcheck
+  ansible.builtin.meta: flush_handlers
+- name: Enable NGINX and backup timer
+  ansible.builtin.service:
+    name: '{{ item }}'
+    enabled: true
+    state: started
+  loop: [nginx, odoo-backup.timer, certbot.timer]
+- name: Wait for Odoo readiness
+  ansible.builtin.uri:
+    url: 'http://127.0.0.1:8069/web/health'
+    status_code: 200
+  register: application_health
+  retries: 30
+  delay: 5
+  until: application_health.status == 200

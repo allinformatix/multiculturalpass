@@ -1,0 +1,149 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "slug",
+    "hostname",
+    "hcp_organization",
+    "github_repository",
+    "ssh_public_key",
+    "acme_email",
+    "cloudflare_zone_id",
+    "ssh_cidrs"
+  ],
+  "properties": {
+    "slug": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[a-z][a-z0-9-]{2,25}$"
+    },
+    "hostname": {
+      "type": "string",
+      "minLength": 1
+    },
+    "hcp_organization": {
+      "type": "string",
+      "minLength": 1
+    },
+    "github_repository": {
+      "type": "string",
+      "minLength": 1
+    },
+    "ssh_public_key": {
+      "type": "string",
+      "minLength": 1
+    },
+    "acme_email": {
+      "type": "string",
+      "minLength": 1
+    },
+    "cloudflare_zone_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "region": {
+      "type": "string",
+      "minLength": 1
+    },
+    "server_type": {
+      "type": "string",
+      "minLength": 1
+    },
+    "image": {
+      "type": "string",
+      "minLength": 1
+    },
+    "odoo_image": {
+      "type": "string",
+      "minLength": 1
+    },
+    "postgres_image": {
+      "type": "string",
+      "minLength": 1
+    },
+    "database": {
+      "type": "string",
+      "minLength": 1
+    },
+    "s3_region": {
+      "type": "string",
+      "minLength": 1
+    },
+    "s3_endpoint": {
+      "type": "string",
+      "minLength": 1
+    },
+    "ssh_user": {
+      "type": "string",
+      "minLength": 1
+    },
+    "hcp_project": {
+      "type": "string",
+      "minLength": 1
+    },
+    "hcp_workspace": {
+      "type": "string",
+      "minLength": 1
+    },
+    "cloud_provider": {
+      "const": "hetzner"
+    },
+    "dns_provider": {
+      "const": "cloudflare"
+    },
+    "cloudflare_proxied": {
+      "type": "boolean"
+    },
+    "manage_zone_settings": {
+      "type": "boolean"
+    },
+    "manage_cache_rules": {
+      "type": "boolean"
+    },
+    "workers": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 32
+    },
+    "backup_keep_daily": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 32
+    },
+    "backup_keep_weekly": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 32
+    },
+    "backup_keep_monthly": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 32
+    },
+    "ssh_cidrs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string"
+      }
+    },
+    "web_cidrs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string"
+      }
+    },
+    "cache_hostnames": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z0-9][a-z0-9.-]*\\.[a-z]{2,}$"
+      }
+    },
+    "external_cache_bypass_confirmed": {
+      "type": "boolean"
+    }
+  }
+}

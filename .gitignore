@@ -1,0 +1,13 @@
+.env*
+!.env.example
+secrets/
+.runtime/
+.venv/
+__pycache__/
+.terraform/
+*.tfstate*
+*.tfplan
+*.pem
+*.key
+*.retry
+.ansible/

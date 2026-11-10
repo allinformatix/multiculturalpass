@@ -1,0 +1,7 @@
+{
+  "slug": "customer-odoo",
+  "hcp_organization": "your-organization",
+  "github_repository": "owner/repository",
+  "ssh_public_key": "ssh-ed25519 REPLACE",
+  "acme_email": "operator@example.com"
+}

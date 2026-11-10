@@ -1,0 +1,19 @@
+---
+extends: default
+rules:
+  line-length: disable
+  comments-indentation: disable
+  braces:
+    max-spaces-inside: 1
+  octal-values:
+    forbid-implicit-octal: true
+    forbid-explicit-octal: true
+  truthy:
+    allowed-values: ['true', 'false', 'on']
+  comments:
+    min-spaces-from-content: 1
+ignore: |
+  .runtime/
+  .venv/
+  .git/
+  .terraform/
