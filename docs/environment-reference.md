@@ -1,0 +1,76 @@
+# Environment-Referenz (generiert)
+
+Quelle: config/variables.json. Nicht manuell ändern; `python3 scripts/generate_environment.py` ausführen.
+
+| Variable | Typ | Secret | Pflicht für | GitHub | Sync |
+|---|---|---|---|---|---|
+| PROJECT_SLUG | string | false | optional | PROJECT_SLUG (variable) | true |
+| PROJECT_NAME | string | false | optional | PROJECT_NAME (variable) | true |
+| TENANT_ID | string | false | optional | TENANT_ID (variable) | true |
+| ENVIRONMENT | string | false | optional | ENVIRONMENT (variable) | true |
+| CLOUD_PROVIDER | string | false | optional | CLOUD_PROVIDER (variable) | true |
+| HCLOUD_LOCATION | string | false | optional | HCLOUD_LOCATION (variable) | true |
+| HCLOUD_SERVER_TYPE | string | false | optional | HCLOUD_SERVER_TYPE (variable) | true |
+| HCLOUD_IMAGE | string | false | optional | HCLOUD_IMAGE (variable) | true |
+| DNS_PROVIDER | string | false | optional | DNS_PROVIDER (variable) | true |
+| DOMAIN | string | false | optional | DOMAIN (variable) | true |
+| CLOUDFLARE_ZONE_ID | string | false | optional | CLOUDFLARE_ZONE_ID (variable) | true |
+| TF_CLOUD_ORGANIZATION | string | false | optional | TF_CLOUD_ORGANIZATION (variable) | true |
+| TF_CLOUD_PROJECT | string | false | optional | TF_CLOUD_PROJECT (variable) | true |
+| TF_WORKSPACE | string | false | optional | TF_WORKSPACE (variable) | true |
+| GITHUB_REPOSITORY | string | false | optional | GITHUB_REPOSITORY (context) | false |
+| SSH_USER | string | false | optional | SSH_USER (variable) | true |
+| SERVER_TIMEZONE | string | false | optional | SERVER_TIMEZONE (variable) | true |
+| ODOO_DATABASE | string | false | optional | ODOO_DATABASE (variable) | true |
+| ODOO_IMAGE | string | false | optional | ODOO_IMAGE (variable) | true |
+| POSTGRES_IMAGE | string | false | optional | POSTGRES_IMAGE (variable) | true |
+| S3_ENDPOINT | string | false | optional | S3_ENDPOINT (variable) | true |
+| S3_REGION | string | false | optional | S3_REGION (variable) | true |
+| S3_BUCKET | string | false | optional | S3_BUCKET (variable) | true |
+| OBSERVABILITY_PROVIDER | string | false | optional | OBSERVABILITY_PROVIDER (variable) | true |
+| GRAFANA_CLOUD_LOKI_URL | string | false | observability | GRAFANA_CLOUD_LOKI_URL (variable) | true |
+| GRAFANA_CLOUD_LOKI_USER | string | false | observability | GRAFANA_CLOUD_LOKI_USER (variable) | true |
+| GRAFANA_CLOUD_STACK | string | false | optional | GRAFANA_CLOUD_STACK (variable) | true |
+| LOG_TENANT | string | false | optional | LOG_TENANT (variable) | true |
+| LOG_STAGE | string | false | optional | LOG_STAGE (variable) | true |
+| LOG_PROJECT | string | false | optional | LOG_PROJECT (variable) | true |
+| LOG_APPLICATION | string | false | optional | LOG_APPLICATION (variable) | true |
+| LOG_PROVIDER | string | false | optional | LOG_PROVIDER (variable) | true |
+| LOG_REGION | string | false | optional | LOG_REGION (variable) | true |
+| OBSERVABILITY_ENABLED | boolean | false | optional | OBSERVABILITY_ENABLED (variable) | true |
+| ODOO_WORKERS | integer | false | optional | ODOO_WORKERS (variable) | true |
+| HCLOUD_TOKEN | string | true | infra | HCLOUD_TOKEN (secret) | true |
+| CLOUDFLARE_API_TOKEN | string | true | infra | CLOUDFLARE_API_TOKEN (secret) | true |
+| AWS_ACCESS_KEY_ID | string | true | infra | AWS_ACCESS_KEY_ID (secret) | true |
+| AWS_SECRET_ACCESS_KEY | string | true | infra | AWS_SECRET_ACCESS_KEY (secret) | true |
+| TF_TOKEN_app_terraform_io | string | true | infra, state | TF_API_TOKEN (secret) | true |
+| CF_DNS_API_TOKEN | string | true | server | CF_DNS_API_TOKEN (secret) | true |
+| BACKUP_AWS_ACCESS_KEY_ID | string | true | server | BACKUP_AWS_ACCESS_KEY_ID (secret) | true |
+| BACKUP_AWS_SECRET_ACCESS_KEY | string | true | server | BACKUP_AWS_SECRET_ACCESS_KEY (secret) | true |
+| RESTIC_PASSWORD | string | true | server | RESTIC_PASSWORD (secret) | true |
+| DB_PASSWORD | string | true | server | DB_PASSWORD (secret) | true |
+| PG_ADMIN_PASSWORD | string | true | server | PG_ADMIN_PASSWORD (secret) | true |
+| ODOO_MASTER_PASSWORD | string | true | server | ODOO_MASTER_PASSWORD (secret) | true |
+| ODOO_ADMIN_PASSWORD | string | true | server | ODOO_ADMIN_PASSWORD (secret) | true |
+| GRAFANA_CLOUD_LOKI_TOKEN | string | true | observability | GRAFANA_CLOUD_LOKI_TOKEN (secret) | true |
+| SSH_PRIVATE_KEY | string | true | ci_ssh | SSH_PRIVATE_KEY (secret) | true |
+| SSH_KNOWN_HOSTS | string | true | ci_ssh | SSH_KNOWN_HOSTS (secret) | true |
+| BOOTSTRAP_SSH_USER | string | false | optional | BOOTSTRAP_SSH_USER (variable) | true |
+| SSH_PUBLIC_KEY_PATH | string | false | optional | SSH_PUBLIC_KEY_PATH (variable) | false |
+| SSH_PRIVATE_KEY_PATH | string | true | optional | SSH_PRIVATE_KEY_PATH (secret) | false |
+| PROJECT_CONFIG | string | false | ci | PROJECT_CONFIG (variable) | true |
+| ENVIRONMENT_CONFIG | string | false | ci | ENVIRONMENT_CONFIG (variable) | true |
+| GH_TOKEN | string | true | optional | GH_TOKEN (secret) | false |
+| TF_TOKEN | string | true | optional | TF_TOKEN (secret) | false |
+| TF_API_TOKEN | string | true | optional | TF_API_TOKEN (secret) | false |
+| POSTGRES_PASSWORD | string | true | optional | POSTGRES_PASSWORD (secret) | false |
+| S3_ACCESS_KEY | string | true | optional | S3_ACCESS_KEY (secret) | false |
+| S3_SECRET_KEY | string | true | optional | S3_SECRET_KEY (secret) | false |
+| POSTGRES_DB | string | false | optional | POSTGRES_DB (variable) | false |
+| AWS_REGION | string | false | optional | AWS_REGION (variable) | false |
+| AZURE_SUBSCRIPTION_ID | string | false | optional | AZURE_SUBSCRIPTION_ID (variable) | false |
+| GCP_PROJECT_ID | string | false | optional | GCP_PROJECT_ID (variable) | false |
+| DIGITALOCEAN_TOKEN | string | true | optional | DIGITALOCEAN_TOKEN (secret) | false |
+| GRAFANA_CLOUD_LOKI_READ_TOKEN | string | true | optional | GRAFANA_CLOUD_LOKI_READ_TOKEN (secret) | false |
+| SSH_KNOWN_HOSTS_PATH | string | false | optional | SSH_KNOWN_HOSTS_PATH (variable) | false |
+| BACKUP_PROVIDER | string | false | optional | BACKUP_PROVIDER (variable) | true |

@@ -55,6 +55,7 @@ backup_snapshot() {
   # Forget unneeded snapshots but defer costly pack compaction to deliberate maintenance.
   restic forget --host "$name" --tag "$name" --keep-daily {{ backup_keep_daily }} --keep-weekly {{ backup_keep_weekly }} --keep-monthly {{ backup_keep_monthly }}
   rm -rf -- "$stage"
+  logger -t odoo-backup "event=backup_complete component=backup"
   date -u +%FT%TZ > state/last-backup-success
   rm -f state/backup-failed
 }

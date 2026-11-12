@@ -7,5 +7,7 @@
       tags: [host]
     - role: docker
       tags: [docker]
+    - role: observability
+      tags: [app, observability]
     - role: application
       tags: [app]

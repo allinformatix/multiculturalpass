@@ -8,8 +8,12 @@ Eigenständiges Template für Odoo 18 Community und PostgreSQL 16 auf einer Ubun
 python3.12 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.lock.txt
+./ops.sh doctor
 cp config/project.example.json config/project.json
 # Projekt und config/environments/{dev,stg,prd}.json ausfüllen; Credentials exportieren.
+./ops.sh env init --env dev
+# .env.dev im Editor mit Credentials ergänzen.
+./ops.sh env validate --env dev
 ./ops.sh init --env dev
 ./ops.sh plan --env dev
 ./ops.sh provision --env dev --confirm customer-odoo-dev:apply
@@ -36,3 +40,5 @@ Die manuellen GitHub-Workflows planen zuerst, veröffentlichen den Plan für ein
 Start: [Getting Started](docs/getting-started.md). Betrieb: [Operations](docs/operations.md). Wiederherstellung: [Disaster Recovery](docs/disaster-recovery.md). Herkunft und Entscheidungen: [Bestandsanalyse](docs/architecture/source-repository-analysis.md), [ADRs](docs/architecture/decisions.md).
 
 Für eine neue GitHub-Vorlage ausschließlich dieses Verzeichnis als Repository-Root verwenden. Das APOII-Quellrepository gehört nicht in das neue Repository. Veröffentlichung und Aktivierung von „Template repository“ erfolgen erst nach separater Freigabe.
+
+Lokale Plattformverwaltung: [Voraussetzungen](docs/prerequisites.md), [dotenv-Konfiguration](docs/environment-configuration.md), [GitHub-Synchronisierung](docs/github-integration.md) und [Grafana Cloud](docs/grafana-cloud.md). `doctor --json`, sichere `--fix`-Installation und `observability` sind Teil derselben ops.sh-CLI. Lokale .env-Dateien werden in CI nie gelesen.

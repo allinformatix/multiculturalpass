@@ -15,14 +15,3 @@ confirm_action() {
   fi
   [[ "$CONFIRM" == "$NAME:$1" ]] || die "requires --confirm $NAME:$1"
 }
-doctor() {
-  local tool
-  for tool in bash python3 terraform ansible-playbook ssh curl gh docker shellcheck yamllint ansible-lint; do need "$tool"; done
-  run terraform version
-  run ansible-playbook --version
-  run docker compose version
-  if [[ "$DRY_RUN" == false ]]; then
-    python3 "$ROOT/scripts/doctor.py" "$ENVIRONMENT"
-    gh auth status
-  fi
-}

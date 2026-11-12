@@ -1,0 +1,16 @@
+# Erweiterung: Bootstrap, Konfiguration und Observability
+
+Stand 2026-11-10. Ziel: bestehendes Template erweitern, keine zweite CLI/Provisioning-Strecke. Der Elternordner ist weiterhin APOII-Initializor; alle Änderungen betreffen ausschließlich das darin liegende eigenständige Template-Repository mit origin allinformatix/odoo-all-in-one-iac-template. Lokale Kundendateien werden nicht kopiert oder überschrieben.
+
+Bestand: Bash ops.sh und Libraries; Python JSON-Schema-Loader; statischer Doctor; HCP-/GitHub-API-Bootstrap; manueller wiederverwendbarer Workflow; Rollen host/docker/application; Compose wird aus ansible/roles/application/templates/compose.yml.j2 generiert. Ein remote/compose-Verzeichnis existiert im Template nicht und wird nicht als konkurrierende Quelle eingeführt. Der bisherige Docker-Logtreiber local bietet Rotation, aber keine Weiterleitung. NGINX läuft nativ. Backup und Deployment laufen als Hostskripte.
+
+Entscheidungen:
+
+- config/variables.json ist Quelle für dotenv-Typen, Defaults, Geheimnis-/Scope-Markierung, Sync-Freigabe und bedingte Pflichtwerte. config/schema.json bleibt zuständig für die strukturierte JSON-Projektkonfiguration. Explizite Zuordnung zwischen beiden, keine Shell-Auswertung oder automatische Übertragung unbekannter Variablen.
+- JSON → ausgewählte lokale dotenv-Datei → Prozessumgebung ist die Priorität. CI liest niemals lokale dotenv-Dateien. Projekt-/Environment-JSON werden weiterhin aus GitHub Variables erzeugt. Secretwerte bleiben im Prozess und werden nicht in Terraform-Konfiguration geschrieben.
+- config/tools.json enthält Werkzeug-/Versions-/Installationsmetadaten. Terraform-Provider erledigen Hetzner-/Cloudflare-/S3-Operationen direkt; deren CLIs sind deshalb optional. Ohne sudo-Freigabe nur User-Installation oder vorhandenes Homebrew. Keine Paketmanagerinstallation.
+- gh bleibt der API-/Verschlüsselungsadapter. Readchecks unterscheiden fehlend, vorhanden/Wert unbekannt und unzureichende Rechte. Synchronisation ist allowlist-basiert, überschreibt standardmäßig nichts und benötigt für prd eine eigene Bestätigung. Secretwerte werden über stdin übergeben.
+- Alloy läuft als eigener Hostbenutzer mit systemd-journal und adm, ohne Docker-Gruppe/-Socket. Bei aktivierter Observability liefern Compose-Container ihre Logs an Journald mit konstanten Component-Tags. Journald hat persistente, begrenzte Aufbewahrung; NGINX erhält datensparsame JSON-Accesslogs. Loki-Labels sind niedrig-kardinal; Kunde/Environment sind logische Filter, keine Autorisierungsgrenze.
+- Ansible installiert Alloy aus signiertem Grafana-Repository, prüft Konfiguration vor Aktivierung und begrenzt Prozessressourcen. Lokale Journald-Aufbewahrung, persistente Positionen und RAM-/Retry-Puffer sind begrenzt; experimentelle WAL wird nicht aktiviert; keine unbegrenzte Verlustfreiheit bei Netzwerkunterbrechungen.
+
+Umsetzung: Kataloge und Parser → Managementbefehle innerhalb ops.sh → Toolprüfung/Installation → GitHub-Checks/Sync/CI-Preflight → Ansible/Alloy/Logquellen → Mocktests und Dokumentation. Keine realen Provideränderungen, GitHub-Secret-Syncs oder Loki-Testnachrichten im Rahmen der lokalen Entwicklung. Echte Logankunft und Restore-/Cloud-Betrieb bleiben gesonderte Abnahmetests.

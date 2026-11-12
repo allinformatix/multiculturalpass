@@ -102,3 +102,39 @@
     name: chrony
     state: started
     enabled: true
+
+- name: Create persistent journal directory
+  ansible.builtin.file:
+    path: /var/log/journal
+    state: directory
+    owner: root
+    group: systemd-journal
+    mode: '2755'
+- name: Create journal configuration directory
+  ansible.builtin.file:
+    path: /etc/systemd/journald.conf.d
+    state: directory
+    mode: '0755'
+- name: Bound persistent host and container logs
+  ansible.builtin.copy:
+    dest: /etc/systemd/journald.conf.d/odoo.conf
+    mode: '0644'
+    content: |
+      [Journal]
+      Storage=persistent
+      SystemMaxUse=256M
+      RuntimeMaxUse=32M
+      MaxRetentionSec=2day
+      RateLimitIntervalSec=30s
+      RateLimitBurst=1000
+  notify: Restart journal
+
+- name: Read configured server timezone
+  ansible.builtin.command: timedatectl show --property=Timezone --value
+  register: host_timezone
+  changed_when: false
+- name: Apply configured server timezone
+  ansible.builtin.command:
+    argv: [timedatectl, set-timezone, '{{ server_timezone }}']
+  when: host_timezone.stdout != server_timezone
+  changed_when: true

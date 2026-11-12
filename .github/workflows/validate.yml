@@ -18,12 +18,19 @@ jobs:
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: '3.12'
+      - name: Read pinned infrastructure versions
+        id: tool_versions
+        run: python3 scripts/tool_versions.py --github-output
       - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3
         with:
-          terraform_version: 1.13.5
+          terraform_version: ${{ steps.tool_versions.outputs.terraform }}
           terraform_wrapper: false
       - name: Install validation dependencies
         run: |
           pip install -r requirements.lock.txt
+      - name: Install verified Alloy for offline pipeline validation
+        run: ./ops.sh prerequisites install --operation alloy-validation --allow-install --non-interactive
       - name: Run all offline and provider schema checks
-        run: ./scripts/validate.sh
+        run: |
+          export PATH="$PWD/.runtime/tools/bin:$PATH"
+          ./scripts/validate.sh

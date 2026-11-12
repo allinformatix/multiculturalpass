@@ -2,6 +2,12 @@ name: {{ name }}
 services:
   db:
     image: {{ postgres_image }}
+    labels:
+      ops.project: {{ slug }}
+      ops.stage: {{ environment }}
+      ops.application: odoo
+      ops.tenant: {{ tenant_id }}
+      ops.component: postgres
     restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
@@ -11,7 +17,7 @@ services:
     volumes:
       - postgres:/var/lib/postgresql/data
     networks: [database]
-    command: [postgres, -c, shared_buffers=128MB, -c, max_connections=50, -c, work_mem=4MB]
+    command: [postgres, -c, shared_buffers=128MB, -c, max_connections=50, -c, work_mem=4MB, -c, log_statement=none, -c, log_min_error_statement=panic, -c, log_parameter_max_length_on_error=0, -c, log_error_verbosity=terse]
     mem_limit: 384m
     shm_size: 128m
     healthcheck:
@@ -19,10 +25,26 @@ services:
       interval: 10s
       timeout: 5s
       retries: 12
+{% if observability_enabled %}
+    logging:
+      driver: journald
+      options:
+        tag: postgres
+        mode: non-blocking
+        max-buffer-size: 1m
+        labels: ops.project,ops.stage,ops.application,ops.tenant,ops.component
+{% else %}
     logging: {driver: local, options: {max-size: 10m, max-file: '3'}}
+{% endif %}
   odoo:
     image: {{ odoo_image }}
     user: "101:101"
+    labels:
+      ops.project: {{ slug }}
+      ops.stage: {{ environment }}
+      ops.application: odoo
+      ops.tenant: {{ tenant_id }}
+      ops.component: odoo
     restart: unless-stopped
     # Bypass image entrypoint argument injection; configuration is authoritative.
     entrypoint: [/usr/bin/odoo]
@@ -46,7 +68,17 @@ services:
       timeout: 5s
       retries: 5
       start_period: 90s
+{% if observability_enabled %}
+    logging:
+      driver: journald
+      options:
+        tag: odoo
+        mode: non-blocking
+        max-buffer-size: 1m
+        labels: ops.project,ops.stage,ops.application,ops.tenant,ops.component
+{% else %}
     logging: {driver: local, options: {max-size: 10m, max-file: '3'}}
+{% endif %}
 volumes:
   postgres:
 networks:

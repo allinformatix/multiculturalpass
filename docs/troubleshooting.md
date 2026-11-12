@@ -19,3 +19,14 @@
 | Lokale Sperre vorhanden | Prüfen, ob noch ein ops-Prozess läuft; nur verwaistes operation.lock-Verzeichnis entfernen |
 
 Fehlerausgaben enthalten absichtlich keine Secretwerte. Bei eigener Debugausgabe niemals set -x für secretbehaftete Abläufe aktivieren. Echte `.runtime`-Outputs und Planartefakte nicht öffentlich in Issues posten.
+
+## Bootstrap und Observability
+
+- Missing environment configuration: `./ops.sh env init --env dev`, Datei befüllen, Modus 0600.
+- Expansion/execution syntax forbidden: keine Shellsyntax in dotenv; Werte literal halten, SSH-Schlüssel per Pfad/CI-Prozessvariable bereitstellen.
+- Installation requires policy: interaktiv --fix --interactive oder ausdrücklich --allow-install; apt zusätzlich --allow-system. Bestehende inkompatible Werkzeuge separat aktualisieren.
+- GitHub unknown-permissions: gh-Login sowie Environment-/Repository-/Organisations-Scopes und ausgewählte Repositoryfreigabe prüfen. Das ist keine Aussage über einen Secretwert.
+- GitHub retained: vorhandene Werte werden standardmäßig nicht überschrieben; für bewusste Rotation --overwrite, bei prd zusätzlich Sync-Bestätigung.
+- Alloy Ready, aber keine Logs: adm/systemd-journal, persistenten Journalpfad, Container-Journald-Tags, Loki-Token/User, HTTPS-Endpoint, Sendefehler und Quell-Retention prüfen. Nach Gruppenänderungen Agent neu starten.
+- 401/403 von Grafana: Write-/Read-Scope unterscheiden. observability test benötigt logs:read; der Agent nur logs:write.
+- Collector-Outage: kein garantiert verlustfreier Puffer; Journalrotation, Retry-Budget und Cursor beachten, tatsächlichen Ausfalltest ausführen.

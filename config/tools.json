@@ -1,0 +1,256 @@
+{
+  "tools": {
+    "python3": {
+      "command": [
+        "python3",
+        "--version"
+      ],
+      "minimum": "3.12",
+      "contexts": [
+        "base"
+      ],
+      "category": "mandatory",
+      "brew": "python@3.12",
+      "apt": "python3"
+    },
+    "bash": {
+      "command": [
+        "bash",
+        "--version"
+      ],
+      "minimum": "3.2",
+      "contexts": [
+        "base"
+      ],
+      "category": "mandatory",
+      "brew": "bash",
+      "apt": "bash"
+    },
+    "git": {
+      "command": [
+        "git",
+        "--version"
+      ],
+      "minimum": "2.30",
+      "contexts": [
+        "base"
+      ],
+      "category": "mandatory",
+      "brew": "git",
+      "apt": "git"
+    },
+    "curl": {
+      "command": [
+        "curl",
+        "--version"
+      ],
+      "minimum": "7.68",
+      "contexts": [
+        "network"
+      ],
+      "category": "mandatory",
+      "brew": "curl",
+      "apt": "curl"
+    },
+    "terraform": {
+      "command": [
+        "terraform",
+        "version",
+        "-json"
+      ],
+      "minimum": "1.13.5",
+      "contexts": [
+        "infra"
+      ],
+      "category": "mandatory",
+      "brew": "hashicorp/tap/terraform",
+      "apt": null,
+      "version": "1.13.5",
+      "maximum": "2.0"
+    },
+    "ansible": {
+      "command": [
+        "ansible-playbook",
+        "--version"
+      ],
+      "minimum": "2.21",
+      "contexts": [
+        "server"
+      ],
+      "category": "mandatory",
+      "brew": null,
+      "apt": null,
+      "installer": "python-lock",
+      "maximum": "2.22"
+    },
+    "gh": {
+      "command": [
+        "gh",
+        "--version"
+      ],
+      "minimum": "2.45",
+      "contexts": [
+        "github"
+      ],
+      "category": "feature",
+      "brew": "gh",
+      "apt": "gh"
+    },
+    "ssh": {
+      "command": [
+        "ssh",
+        "-V"
+      ],
+      "minimum": "8.2",
+      "contexts": [
+        "ssh"
+      ],
+      "category": "feature",
+      "brew": null,
+      "apt": "openssh-client"
+    },
+    "scp": {
+      "command": [
+        "scp"
+      ],
+      "minimum": "0",
+      "contexts": [
+        "ssh"
+      ],
+      "category": "feature",
+      "brew": null,
+      "apt": "openssh-client",
+      "presence_only": true
+    },
+    "docker": {
+      "command": [
+        "docker",
+        "--version"
+      ],
+      "minimum": "24.0",
+      "contexts": [
+        "compose"
+      ],
+      "category": "feature",
+      "brew": "docker",
+      "apt": "docker.io"
+    },
+    "compose": {
+      "command": [
+        "docker",
+        "compose",
+        "version",
+        "--short"
+      ],
+      "minimum": "2.24",
+      "contexts": [
+        "compose"
+      ],
+      "category": "feature",
+      "brew": "docker-compose",
+      "apt": "docker-compose-v2"
+    },
+    "jq": {
+      "command": [
+        "jq",
+        "--version"
+      ],
+      "minimum": "0",
+      "contexts": [],
+      "category": "optional",
+      "brew": "jq",
+      "apt": "jq"
+    },
+    "yq": {
+      "command": [
+        "yq",
+        "--version"
+      ],
+      "minimum": "0",
+      "contexts": [],
+      "category": "optional",
+      "brew": "yq",
+      "apt": null
+    },
+    "hcloud": {
+      "command": [
+        "hcloud",
+        "version"
+      ],
+      "minimum": "0",
+      "contexts": [],
+      "category": "provider-specific",
+      "brew": "hcloud",
+      "apt": null,
+      "provider": "hetzner",
+      "note": "Optional: Terraform performs the implemented provider operations directly"
+    },
+    "aws": {
+      "command": [
+        "aws",
+        "--version"
+      ],
+      "minimum": "0",
+      "contexts": [],
+      "category": "provider-specific",
+      "brew": "awscli",
+      "apt": null,
+      "provider": "aws",
+      "note": "Optional: Terraform performs the implemented provider operations directly"
+    },
+    "az": {
+      "command": [
+        "az",
+        "version"
+      ],
+      "minimum": "0",
+      "contexts": [],
+      "category": "provider-specific",
+      "brew": "azure-cli",
+      "apt": null,
+      "provider": "azure",
+      "note": "Optional: Terraform performs the implemented provider operations directly"
+    },
+    "gcloud": {
+      "command": [
+        "gcloud",
+        "version"
+      ],
+      "minimum": "0",
+      "contexts": [],
+      "category": "provider-specific",
+      "brew": "google-cloud-sdk",
+      "apt": null,
+      "provider": "gcp",
+      "note": "Optional: Terraform performs the implemented provider operations directly"
+    },
+    "doctl": {
+      "command": [
+        "doctl",
+        "version"
+      ],
+      "minimum": "0",
+      "contexts": [],
+      "category": "provider-specific",
+      "brew": "doctl",
+      "apt": null,
+      "provider": "digitalocean",
+      "note": "Optional: Terraform performs the implemented provider operations directly"
+    },
+    "alloy": {
+      "command": [
+        "alloy",
+        "--version"
+      ],
+      "minimum": "1.21.3",
+      "maximum": "2.0",
+      "version": "1.21.3",
+      "contexts": [
+        "alloy-validation"
+      ],
+      "category": "feature",
+      "brew": null,
+      "apt": null
+    }
+  }
+}

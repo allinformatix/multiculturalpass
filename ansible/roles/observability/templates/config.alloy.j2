@@ -1,0 +1,99 @@
+logging {
+  level = "warn"
+  format = "json"
+}
+loki.write "cloud" {
+  external_labels = {
+    tenant = {{ tenant_id | to_json }},
+    stage = {{ environment | to_json }},
+    project = {{ slug | to_json }},
+    application = "odoo",
+    provider = {{ cloud_provider | to_json }},
+    region = {{ region | to_json }},
+  }
+  max_streams = 64
+  endpoint {
+    url = {{ loki_url | to_json }}
+    follow_redirects = false
+    batch_size = "256KiB"
+    batch_wait = "2s"
+    min_backoff_period = "1s"
+    max_backoff_period = "1m"
+    max_backoff_retries = 20
+    remote_timeout = "15s"
+    basic_auth {
+      username = {{ lookup('env', 'GRAFANA_CLOUD_LOKI_USER') | to_json }}
+      password_file = "/etc/alloy/loki-token"
+    }
+  }
+}
+// Keep data streams bounded and never index filenames, journal hostnames or container IDs.
+loki.relabel "bounded" {
+  forward_to = [loki.process.redact.receiver]
+  rule {
+    action = "labelkeep"
+    regex = "component|job"
+  }
+}
+loki.process "redact" {
+  forward_to = [loki.write.cloud.receiver]
+  stage.regex {
+    expression = "(?i)(?P<severity>TRACE|DEBUG|INFO|NOTICE|WARNING|WARN|ERROR|CRITICAL|FATAL|PANIC)"
+  }
+  stage.structured_metadata {
+    values = { severity = "" }
+  }
+  // Discard request bodies, SQL statement/parameter dumps and sensitive HTTP diagnostic lines.
+  stage.drop {
+    expression = "(?i)(authorization|cookie|request body|statement:|parameters:|request:|upstream:)"
+    drop_counter_reason = "sensitive_content"
+  }
+  stage.replace {
+    expression = `(?i)(?:password|passwd|token|secret|api_key)["'= :]+([^ "',;]+)`
+    replace = "[REDACTED]"
+  }
+  stage.replace {
+    expression = `\?([^ "']+)`
+    replace = "[REDACTED]"
+  }
+  stage.replace {
+    expression = `(?i)([A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})`
+    replace = "[REDACTED]"
+  }
+  stage.replace {
+    expression = `\b((?:[0-9]{1,3}\.){3}[0-9]{1,3})\b`
+    replace = "[REDACTED]"
+  }
+}
+{% for component, match in [('odoo','CONTAINER_TAG=odoo'),('postgres','CONTAINER_TAG=postgres'),('backup','_SYSTEMD_UNIT=odoo-backup.service'),('deployment','SYSLOG_IDENTIFIER=odoo-ops'),('alloy','_SYSTEMD_UNIT=alloy.service'),('host','_SYSTEMD_UNIT=systemd-journald.service + _SYSTEMD_UNIT=chrony.service + _TRANSPORT=kernel')] %}
+loki.source.journal "{{ component }}" {
+  matches = {{ match | to_json }}
+  max_age = "48h"
+  labels = { component = "{{ component }}" }
+  forward_to = [loki.relabel.bounded.receiver]
+}
+{% endfor %}
+loki.relabel "daemon" {
+  forward_to = [loki.relabel.bounded.receiver]
+  rule {
+    source_labels = ["__journal_container_tag"]
+    regex = ".+"
+    action = "drop"
+  }
+}
+loki.source.journal "docker" {
+  matches = "_SYSTEMD_UNIT=docker.service"
+  labels = { component = "docker" }
+  relabel_rules = loki.relabel.daemon.rules
+  forward_to = [loki.relabel.bounded.receiver]
+}
+local.file_match "nginx" {
+  path_targets = [
+    {__path__ = "/var/log/nginx/odoo-access.json", component = "nginx_access"},
+    {__path__ = "/var/log/nginx/odoo-error.log", component = "nginx_error"},
+  ]
+}
+loki.source.file "nginx" {
+  targets = local.file_match.nginx.targets
+  forward_to = [loki.relabel.bounded.receiver]
+}

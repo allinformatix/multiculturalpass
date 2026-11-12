@@ -144,6 +144,31 @@
     },
     "external_cache_bypass_confirmed": {
       "type": "boolean"
+    },
+    "observability_enabled": {
+      "type": "boolean"
+    },
+    "observability_provider": {
+      "const": "grafana-cloud"
+    },
+    "tenant_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9_-]*$",
+      "maxLength": 40
+    },
+    "loki_url": {
+      "type": "string"
+    },
+    "alloy_version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+-[0-9]+$"
+    },
+    "server_timezone": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_+/-]+$"
+    },
+    "backup_provider": {
+      "const": "hetzner-s3"
     }
   }
 }

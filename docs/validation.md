@@ -6,7 +6,7 @@ Stand: 2026-11-10. Ausschließlich das neue lokale Template wurde implementiert.
 
 | Prüfung | Ergebnis |
 |---|---|
-| Python unittest | 35 Tests bestanden: 27 CLI-/Konfigurations- und 8 Backup-/Restore-Tests |
+| Python unittest | 84 Tests bestanden: 27 CLI-/Konfigurations-, 8 Backup-/Restore- und 49 Plattformtests |
 | Terraform native tests | 2 Tests mit ausschließlich gemockten Providern bestanden: Adapteridentität und falsches Environment |
 | Terraform fmt -check -recursive | Bestanden |
 | Terraform init -backend=false und validate | dev, stg und prd bestanden; echte installierte Provider-Schemas, kein Cloud-Backend |
@@ -41,3 +41,15 @@ Der vollständige Erstdeployment- und DR-Abnahmetest steht in getting-started.md
 ## Bewusste Betriebsgrenzen
 
 Eine VM ist kein HA-System. Odoo ist der einzige unterstützte DB-/Filestore-Schreiber. Restic-Retention entfernt Snapshots, aber nicht automatisch alle Packs/Objektversionen; physische Löschfristen und Kosten brauchen einen separaten Wartungsplan. S3-Versionierung ist kein WORM-Schutz. Host-Backup-Credentials müssen durch geprüfte Hetzner-Projekt-/Bucket-Policies begrenzt werden. Der Infrastrukturadministrator ist Root-äquivalent. Lokale und CI-Konfiguration dürfen nicht gleichzeitig über verschiedene Controller geändert werden; Terraform-State-Locking und Server-flock ersetzen keinen globalen Ansible-Deployment-Lock. Zonenweite Cloudflare-Regeln haben einen expliziten gemeinsamen Eigentümer. Produktive Major-Migrationen und destruktive VM-Ersetzungen erfordern ein eigenes geprüftes Verfahren.
+
+## Erweiterungsabnahme: Bootstrap, Environment, GitHub und Alloy
+
+Die vollständige Suite `scripts/validate.sh` besteht mit 84 Python-Tests und zwei Terraform-Mocktests. ShellCheck, YAML-Lint, Ansible-Lint Profil production (11 Dateien), Ansible-Syntax, Terraform fmt/validate aller drei Roots, Python-Kompilierung, Git-Diff-Whitespaceprüfung und Secret-Basisscan bestehen. Die generierte .env.example/Environment-Referenz und Workflow-Referenzen werden gegen den zentralen Variablenkatalog geprüft. Compose wird mit aktivierter UND deaktivierter Observability gerendert; beide Varianten prüfen Treiber/Component-Tags/Tenant-Labels und fehlenden PostgreSQL-Hostport.
+
+Zusätzlich wurde das offizielle Alloy-v1.21.3-Binary für macOS amd64 nach /tmp geladen, gegen die Hersteller-SHA256SUMS geprüft und die vollständige gerenderte Konfiguration mit `alloy validate` validiert. Ein echter lokaler Alloy-Prozess hat anschließend die Produktions-Redaktionsstufen gegen synthetische Fixtures ausgeführt: harmloser Marker kommt an, Passwort-/Querywerte, Authorization-Zeile, E-Mail- und IPv4-Beispielwerte erscheinen nicht im lokalen Testsink. Ausschließlich Loopback, Reporting deaktiviert, keine externen Loki-Verbindungen. Dieser Test beweist die geprüften Muster, keine allgemeine PII-Erkennung für beliebige ERP-/Addon-Logs.
+
+Automatisierte Plattformtests: vier OS-/Architekturkombinationen simuliert, Versionsvergleich/Toolauswahl, fehlende Tools, kein automatisches Upgrade, kontrolliertes apt ohne implizites sudo, Prüfsummenfehler und verifizierte User-Installation mit synthetischem Binary, sichere dotenv-Syntax/Modi/Identität/Aliase, Init-/Dry-Run-/Overwrite-Schutz, CI ohne lokale dotenv-Datei, CI-Repository-Identität, GitHub-API-Fehler/Scope-Unklarheit/Wertunprüfbarkeit/Bestandsschutz/stdin-Sync/prd-Bestätigung, Loki-Endpoint/Credentials, Registry-Abdeckung und Git-Secret-Scanning einschließlich ignorierter versus versionierter dotenv-Dateien.
+
+Nicht ausgeführt: reale Homebrew-/apt-Installation oder Betrieb auf macOS ARM/Linux ARM, echte GitHub-Metadaten-/Secret-Synchronisierung, echte Provider-/HCP-/S3-Authentifizierung mit Betreiberzugängen, VM-Konfiguration, Journald-/Alloy-Servicebetrieb unter Ubuntu, GitHub-Actions-Run, Logankunft in einem echten Grafana-Cloud-Stack sowie gemessene Outage-/Last-/Datenverlusttests. Es wurden keine lokalen Kunden-Environment-Dateien überschrieben, keine produktiven Secrets übertragen und keine Cloud-Ressourcen erzeugt. Voraussetzung 9 des Erweiterungsauftrags (reale Logankunft) ist damit eine ausdrücklich noch offene Betreiber-/Integrationsabnahme; sie wird durch den Offline-Test nicht ersetzt.
+
+Für die Live-Abnahme: Voraussetzungen und Environment einrichten, Credentials validieren, GitHub-Sync zuerst als Dry-Run prüfen, vollständige Hostkonfiguration im Wartungsfenster durchführen, alle Logkomponenten auslösen, `observability test` mit separatem logs:read-Token ausführen, Labels/Redaction in Grafana kontrollieren und einen dokumentierten Verbindungs-/Agent-Ausfall simulieren. Siehe grafana-cloud.md und observability.md. Ein erfolgreiches service readiness ist kein Zustellnachweis.
