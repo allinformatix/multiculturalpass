@@ -11,4 +11,6 @@ __pycache__/
 *.key
 *.retry
 .ansible/
-config/project.json
+
+# Local project identity is synchronized explicitly, never inherited by template users.
+/config/project.json

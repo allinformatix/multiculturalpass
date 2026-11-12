@@ -19,3 +19,4 @@ db_maxconn = 16
 data_dir = /var/lib/odoo
 addons_path = /mnt/extra-addons
 log_level = info
+log_handler = werkzeug:WARNING,odoo.sql_db:CRITICAL

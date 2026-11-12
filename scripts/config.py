@@ -17,6 +17,9 @@ def load(env, strict=True):
         if path.name == 'project.json' and not path.exists():
             raise ValueError('copy config/project.example.json to config/project.json first')
         config.update(json.loads(path.read_text()))
+    from environment import overlay
+    config = overlay(config, env)
+    config.setdefault("alloy_version",json.loads((ROOT/"config/tools.json").read_text())["tools"]["alloy"]["version"]+"-1")
     schema = json.loads((ROOT/'config/schema.json').read_text())
     try:
         import jsonschema
@@ -84,6 +87,7 @@ def load(env, strict=True):
         candidate = {}
         for path in (ROOT/'config/defaults.json', ROOT/'config/project.json', ROOT/f'config/environments/{other}.json'):
             candidate.update(json.loads(path.read_text()))
+        candidate = overlay(candidate, other, process={'CI':os.environ.get('CI','false')})
         workspace = candidate.get('hcp_workspace', f"{candidate['slug']}-{other}")
         if (candidate['hcp_organization'], workspace) == (config['hcp_organization'], config['hcp_workspace']):
             raise ValueError('environments must not share an HCP workspace')
@@ -93,6 +97,17 @@ def load(env, strict=True):
             for key in ('manage_zone_settings', 'manage_cache_rules'):
                 if candidate[key] and config[key]:
                     raise ValueError(f'only one environment may own {key} for a shared zone')
+    from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+    try:ZoneInfo(config['server_timezone'])
+    except (ValueError,ZoneInfoNotFoundError):raise ValueError('invalid SERVER_TIMEZONE') from None
+    config['tenant_id'] = config['tenant_id'] or config['slug']
+    if config['observability_enabled']:
+        from prerequisites import version, tool_registry
+        alloy=tool_registry()['alloy']
+        if not (version(alloy['minimum']) <= version(config['alloy_version']) < version(alloy['maximum'])):
+            raise ValueError('Alloy version is outside the supported registry range')
+        from environment import validate_loki_url
+        validate_loki_url(config['loki_url'])
     config['name'] = f"{config['slug']}-{env}"
     config['backup_bucket'] = f"{config['name']}-backups"
     return config

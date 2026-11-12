@@ -6,11 +6,14 @@ bash -n ops.sh
 shellcheck -x ops.sh lib/*.sh scripts/*.sh
 python3 -m unittest discover -s tests -v
 python3 scripts/scan_secrets.py
+python3 scripts/generate_environment.py --check
+PYTHONPATH=scripts python3 -c 'from github_config import audit_workflows; audit_workflows()'
 yamllint .github ansible .yamllint .ansible-lint
 ANSIBLE_LOCAL_TEMP="$PWD/.runtime/ansible-tmp" ansible-lint ansible/site.yml
 ANSIBLE_LOCAL_TEMP="$PWD/.runtime/ansible-tmp" ansible-playbook -i localhost, ansible/site.yml --syntax-check
 python3 scripts/render_test.py
 shellcheck .runtime/rendered/*.sh
+python3 scripts/validate_observability.py
 terraform fmt -check -recursive terraform
 for environment in dev stg prd; do
   terraform "-chdir=terraform/environments/$environment" init -backend=false -input=false -lockfile=readonly

@@ -53,6 +53,8 @@ jobs:
       BOOTSTRAP_SSH_USER: ${{ vars.BOOTSTRAP_SSH_USER }}
       PROJECT_CONFIG: ${{ vars.PROJECT_CONFIG }}
       ENVIRONMENT_CONFIG: ${{ vars.ENVIRONMENT_CONFIG }}
+      GRAFANA_CLOUD_LOKI_USER: ${{ vars.GRAFANA_CLOUD_LOKI_USER }}
+      GRAFANA_CLOUD_LOKI_TOKEN: ${{ secrets.GRAFANA_CLOUD_LOKI_TOKEN }}
       GH_TOKEN: ${{ github.token }}
       DEPLOY_ENV: ${{ inputs.environment }}
     steps:
@@ -62,6 +64,7 @@ jobs:
       - uses: ./.github/actions/setup
         with:
           environment: ${{ inputs.environment }}
+          operation: ${{ inputs.operation }}
           ssh-required: 'false'
       - name: Generate reviewable plan
         run: ./ops.sh plan --env "$DEPLOY_ENV"
@@ -103,6 +106,8 @@ jobs:
       BOOTSTRAP_SSH_USER: ${{ vars.BOOTSTRAP_SSH_USER }}
       PROJECT_CONFIG: ${{ vars.PROJECT_CONFIG }}
       ENVIRONMENT_CONFIG: ${{ vars.ENVIRONMENT_CONFIG }}
+      GRAFANA_CLOUD_LOKI_USER: ${{ vars.GRAFANA_CLOUD_LOKI_USER }}
+      GRAFANA_CLOUD_LOKI_TOKEN: ${{ secrets.GRAFANA_CLOUD_LOKI_TOKEN }}
       GH_TOKEN: ${{ github.token }}
       DEPLOY_ENV: ${{ inputs.environment }}
       OPERATION: ${{ inputs.operation }}
@@ -116,6 +121,7 @@ jobs:
       - uses: ./.github/actions/setup
         with:
           environment: ${{ inputs.environment }}
+          operation: ${{ inputs.operation }}
           ssh-required: ${{ inputs.operation != 'provision' }}
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         if: needs.plan.result == 'success'

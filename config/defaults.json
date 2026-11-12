@@ -43,5 +43,11 @@
     "2c0f:f248::/32"
   ],
   "cache_hostnames": [],
-  "external_cache_bypass_confirmed": false
+  "external_cache_bypass_confirmed": false,
+  "observability_enabled": false,
+  "observability_provider": "grafana-cloud",
+  "tenant_id": "",
+  "loki_url": "",
+  "server_timezone": "UTC",
+  "backup_provider": "hetzner-s3"
 }

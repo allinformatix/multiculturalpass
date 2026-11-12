@@ -22,6 +22,10 @@ class CLI(unittest.TestCase):
             cfg={'hostname':f'odoo.{env}.sample.org','cloudflare_zone_id':'a'*32,'ssh_cidrs':['198.51.100.7/32'],'external_cache_bypass_confirmed':True}
             (self.root/f'config/environments/{env}.json').write_text(json.dumps(cfg))
             (self.root/f'terraform/environments/{env}').mkdir(parents=True)
+        for env in ['dev','stg','prd']:
+            dotenv=self.root/f'.env.{env}';dotenv.write_text('ENVIRONMENT='+env+'\n');dotenv.chmod(0o600)
+        # Isolate provider preflight from these existing Bash orchestration tests.
+        (self.root/'scripts/platform_ops.py').write_text('import sys; sys.exit(0)\n')
         self.bin=self.root/'bin';self.bin.mkdir()
         self.log=self.root/'calls'
         for name in ['terraform','ansible-playbook','ssh','curl','gh']:

@@ -5,6 +5,9 @@ inputs:
   environment:
     description: Deployment environment
     required: true
+  operation:
+    description: Requested deployment operation
+    default: deploy
   ssh-required:
     description: Whether the operation needs an SSH connection
     default: 'true'
@@ -14,9 +17,13 @@ runs:
     - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
       with:
         python-version: '3.12'
+    - name: Read pinned infrastructure versions
+      id: tool_versions
+      shell: bash
+      run: python3 scripts/tool_versions.py --github-output
     - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3
       with:
-        terraform_version: 1.13.5
+        terraform_version: ${{ steps.tool_versions.outputs.terraform }}
         terraform_wrapper: false
     - name: Install dependencies
       shell: bash
@@ -27,3 +34,9 @@ runs:
         DEPLOY_ENV: ${{ inputs.environment }}
         REQUIRE_SSH: ${{ inputs.ssh-required }}
       run: python3 scripts/ci_prepare.py "$DEPLOY_ENV"
+    - name: Shared preflight before any infrastructure changes
+      shell: bash
+      env:
+        DEPLOY_ENV: ${{ inputs.environment }}
+        DEPLOY_OPERATION: ${{ inputs.operation }}
+      run: python3 scripts/platform_ops.py preflight --env "$DEPLOY_ENV" --operation "$DEPLOY_OPERATION" --json

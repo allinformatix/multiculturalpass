@@ -32,4 +32,5 @@ compose up -d --wait --wait-timeout 180
 # Configuration files may change without a compose service hash change.
 compose restart odoo
 printf '%s\n' "$fingerprint" > state/deployment.sha256
+logger -t odoo-ops "event=deployment_complete component=deployment"
 echo Changed

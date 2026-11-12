@@ -1,6 +1,6 @@
 # Konfiguration
 
-Zusammenführung in Reihenfolge: `config/defaults.json` → `config/project.json` → `config/environments/ENV.json`. Das vollständige Schema liegt in `config/schema.json`; unbekannte Schlüssel werden abgelehnt. Secrets gehören ausschließlich in die Prozessumgebung/GitHub-Secrets und werden nicht in Terraform-Variablen geschrieben. Die generierten `.runtime`-Dateien sind ignoriert und auf dem Controller geschützt.
+Zusammenführung in Reihenfolge: `config/defaults.json` → `config/project.json` → `config/environments/ENV.json`. Das vollständige Schema liegt in `config/schema.json`; unbekannte Schlüssel werden abgelehnt. Secrets gehören in geschützte lokale .env.ENV-Dateien, die Prozessumgebung oder GitHub-Secrets und werden nicht in Terraform-Variablen geschrieben. Die generierten `.runtime`-Dateien sind ignoriert und auf dem Controller geschützt.
 
 | Kategorie | Parameter |
 |---|---|
@@ -27,3 +27,5 @@ Mindestens ein State je Zone muss Cache-Bypass verwalten oder ein bestehender ex
 Bei vorhandenen Rulesets nicht blind neue Entry-Points anlegen: Ownership/Import gemeinsam planen. Workflows erhalten den Projektinhalt als GitHub-Variable PROJECT_CONFIG und Environment-Override als ENVIRONMENT_CONFIG (jeweils JSON-Objekt).
 
 Odoo/PostgreSQL-Defaults sind auf überprüfte Linux-amd64-Manifeste per Digest gepinnt. Neue Digests bewusst in dev prüfen, danach stg/prd aktualisieren. Betriebssystem und Docker werden über offizielle signierte Ubuntu-/Docker-Repositories installiert; Paketpatches sind nicht byteidentisch eingefroren. Sicherheitsupdates laufen automatisch über unattended-upgrades. Den gewünschten Paketstand für streng reproduzierbare OS-Builds separat spiegeln/versionieren.
+
+Erweiterte Priorität, Aliase und Variablenkatalog: [environment-configuration.md](environment-configuration.md). Observability- und Toolparameter werden über die dort dokumentierten Kataloge verwaltet.

@@ -8,6 +8,7 @@ prepare_inventory() {
 }
 configure() {
   prepare_inventory
+  if [[ -n "${OPS_SSH_KEY_PATH:-}" ]]; then export ANSIBLE_PRIVATE_KEY_FILE="$OPS_SSH_KEY_PATH"; fi
   run ansible-playbook -i "$RUNTIME/inventory.json" "$ROOT/ansible/site.yml" -e "@$RUNTIME/config.json" --tags "$1"
 }
 remote() {
@@ -15,7 +16,9 @@ remote() {
   if [[ "$DRY_RUN" == true ]]; then log 'Would execute the requested operation on the verified environment host'; return; fi
   local ip
   ip="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["host"]["value"]["ipv4"])' "$RUNTIME/outputs.json")"
-  ssh -o BatchMode=yes -o StrictHostKeyChecking=yes "$(get_config ssh_user)@$ip" sudo -n "$@"
+  local ssh_key_args=()
+  if [[ -n "${OPS_SSH_KEY_PATH:-}" ]]; then ssh_key_args=(-i "$OPS_SSH_KEY_PATH"); fi
+  ssh "${ssh_key_args[@]}" -o BatchMode=yes -o StrictHostKeyChecking=yes "$(get_config ssh_user)@$ip" sudo -n "$@"
 }
 status() {
   remote docker compose --project-directory /opt/odoo ps
